@@ -11,7 +11,7 @@
 #include <cmath>
 #include "light_source.h"
 
-void PointLight::shade( Ray3D& ray, bool ambient_only) {
+void PointLight::shade( Ray3D& ray, bool with_specular, bool only_signature) {
 	// TODO: implement this function to fill in values for ray.col 
 	// using phong shading.  Make sure your vectors are normalized, and
 	// clamp colour values to 1.0.
@@ -44,11 +44,16 @@ void PointLight::shade( Ray3D& ray, bool ambient_only) {
 
 	Colour specular = fmax(0.0, pow((reflected_ray.dot(camera)), mat->specular_exp)) * (mat->specular * _col_specular);
 
-	if (ambient_only) {
-		ray.col = ambient;
+	if (only_signature) {
+		ray.col = mat->ambient + mat->diffuse + mat->specular;
 	}
 	else {
-		ray.col = ambient + diffuse + specular;
+		if (with_specular) {
+			ray.col = ambient + diffuse + specular;
+		}
+		else {
+			ray.col = ambient + diffuse;
+		}
 	}
 
 	ray.col.clamp();

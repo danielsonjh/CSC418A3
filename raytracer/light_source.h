@@ -16,7 +16,7 @@
 // differently.
 class LightSource {
 public:
-	virtual void shade( Ray3D&, bool ambient_only) = 0;
+	virtual void shade( Ray3D&, bool with_specular, bool only_signature) = 0;
 	virtual Point3D get_position() const = 0; 
 };
 
@@ -29,7 +29,7 @@ public:
 	PointLight( Point3D pos, Colour ambient, Colour diffuse, Colour specular ) 
 	: _pos(pos), _col_ambient(ambient), _col_diffuse(diffuse), 
 	_col_specular(specular) {}
-	void shade( Ray3D& ray, bool ambient_only);
+	void shade( Ray3D& ray, bool with_specular, bool only_signature);
 	Point3D get_position() const { return _pos; }
 	
 private:

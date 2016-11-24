@@ -68,7 +68,7 @@ public:
 	// positioned at eye, with view vector view, up vector up, and 
 	// field of view fov.
 	void render( int width, int height, Point3D eye, Vector3D view, 
-			Vector3D up, double fov, char* fileName );
+			Vector3D up, double fov, char* fileName, bool with_specular, bool only_signature);
 
 	// Add an object into the scene, with material mat.  The function
 	// returns a handle to the object node you just added, use the 
@@ -110,7 +110,7 @@ private:
 
 	// Return the colour of the ray after intersection and shading, call 
 	// this function recursively for reflection and refraction.  
-	Colour shadeRay( Ray3D& ray ); 
+	Colour shadeRay( Ray3D& ray, bool with_specular, bool only_signature);
 
 	// Constructs a view to world transformation matrix based on the
 	// camera parameters.
@@ -123,7 +123,7 @@ private:
 
 	// After intersection, calculate the colour of the ray by shading it
 	// with all light sources in the scene.
-	void computeShading( Ray3D& ray );
+	void computeShading( Ray3D& ray, bool with_specular, bool only_signature);
 	
 	// Width and height of the viewport.
 	int _scrWidth;

@@ -179,7 +179,7 @@ void Raytracer::traverseScene( SceneDagNode* node, Ray3D& ray, const Matrix4x4& 
 
 }
 
-void Raytracer::computeShading( Ray3D& ray ) {
+void Raytracer::computeShading( Ray3D& ray, bool with_specular, bool only_signature) {
 	LightListNode* curLight = _lightSource;
 	for (;;) {
 		if (curLight == NULL) break;
@@ -187,7 +187,7 @@ void Raytracer::computeShading( Ray3D& ray ) {
 
 		// Implement shadows here if needed.
 
-		curLight->light->shade(ray, false);
+		curLight->light->shade(ray, with_specular, only_signature);
 		curLight = curLight->next;
 	}
 }
@@ -213,14 +213,14 @@ void Raytracer::flushPixelBuffer( char *file_name ) {
 	delete _bbuffer;
 }
 
-Colour Raytracer::shadeRay( Ray3D& ray ) {
+Colour Raytracer::shadeRay( Ray3D& ray, bool with_specular, bool only_signature) {
 	Colour col(0.0, 0.0, 0.0); 
 	traverseScene(_root, ray); 
 	
 	// Don't bother shading if the ray didn't hit 
 	// anything.
 	if (!ray.intersection.none) {
-		computeShading(ray); 
+		computeShading(ray, with_specular, only_signature);
 		col = ray.col;  
 	}
 
@@ -231,7 +231,7 @@ Colour Raytracer::shadeRay( Ray3D& ray ) {
 }	
 
 void Raytracer::render( int width, int height, Point3D eye, Vector3D view, 
-		Vector3D up, double fov, char* fileName ) {
+		Vector3D up, double fov, char* fileName, bool with_specular, bool only_signature) {
 	Matrix4x4 viewToWorld;
 	_scrWidth = width;
 	_scrHeight = height;
@@ -259,7 +259,7 @@ void Raytracer::render( int width, int height, Point3D eye, Vector3D view,
 			ray.dir = viewToWorld * Vector3D(imagePlane[0], imagePlane[1], imagePlane[2]);
 			ray.dir.normalize();
 
-			Colour col = shadeRay(ray); 
+			Colour col = shadeRay(ray, with_specular, only_signature);
 
 			_rbuffer[i*width+j] = int(col[0]*255);
 			_gbuffer[i*width+j] = int(col[1]*255);
@@ -322,12 +322,18 @@ int main(int argc, char* argv[])
 
 	// Render the scene, feel free to make the image smaller for
 	// testing purposes.	
-	raytracer.render(width, height, eye, view, up, fov, "view1.bmp");
+
+	raytracer.render(width, height, eye, view, up, fov, "sig1.bmp", false, true);
+	raytracer.render(width, height, eye, view, up, fov, "diffuse1.bmp", false, false);
+	raytracer.render(width, height, eye, view, up, fov, "phong1.bmp", true, false);
 	
 	// Render it from a different point of view.
 	Point3D eye2(4, 2, 1);
 	Vector3D view2(-4, -2, -6);
-	raytracer.render(width, height, eye2, view2, up, fov, "view2.bmp");
+	raytracer.render(width, height, eye2, view2, up, fov, "sig2.bmp", false, true);
+	raytracer.render(width, height, eye2, view2, up, fov, "diffuse2.bmp", false, false);
+	raytracer.render(width, height, eye2, view2, up, fov, "phong2.bmp", true, false);
+
 	
 	return 0;
 }
