@@ -35,16 +35,16 @@ bool    keys[1024];
 glm::vec3 lightPos(3.0f, 10.0f, 4.0f);
 
 // Fluid attributes
-const float c = 6;
-const float decay_per_sec = 0.7f;
+const float c = 15;
+const float decay_per_sec = 0.5f;
 const int i_count = 50;
 const int j_count = 50;
-float init_avg_u = 0;
+const float init_avg_u = 30;
 
 // Magnet attributes
-float magnetStrength = 100.0f;
+float magnetStrength = 400.0f;
 float magnetSpeed = 25;
-glm::vec3 magnetPos(0.0f, 10.0f, 0.0f);
+glm::vec3 magnetPos(0.0f, 7.0f, 0.0f);
 
 // Deltatime
 GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
@@ -165,13 +165,10 @@ int main()
 	float f = 0;
 	for (int i = 0; i < i_count; i++) {
 		for (int j = 0; j < j_count; j++) {
-			u[i][j] = rand() % 1000  / (float)200;
-			//u[i][j] = 25 * (i + j) / (i_count + j_count) + 1;
+			u[i][j] = init_avg_u;
 			v[i][j] = 0;
-			init_avg_u += u[i][j];
 		}
 	}
-	init_avg_u /= i_count + j_count;
 
 	// Game loop
 	while (!glfwWindowShouldClose(window))
@@ -197,19 +194,19 @@ int main()
 		glUniform3f(viewPosLoc, camera.Position.x, camera.Position.y, camera.Position.z);
 		// Set lights properties
 		glm::vec3 lightColor;
-		lightColor.x = 1;
-		lightColor.y = 1;
+		lightColor.x = 0;
+		lightColor.y = 0.75;
 		lightColor.z = 1;
 		glm::vec3 diffuseColor = lightColor * glm::vec3(0.9f); // Decrease the influence
 		glm::vec3 ambientColor = diffuseColor * glm::vec3(0.4f); // Low influence
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "light.ambient"), ambientColor.x, ambientColor.y, ambientColor.z);
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "light.diffuse"), diffuseColor.x, diffuseColor.y, diffuseColor.z);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "light.specular"), 1.0f, 1.0f, 1.0f);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "light.specular"), 0.25f, 0.25f, 0.25f);
 		// Set material properties
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.ambient"), 1.0f, 1.0f, 1.0f);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.diffuse"), 1.0f, 1.0f, 1.0f);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.specular"), 0.75f, 0.75f, 0.75f);
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 12.0f);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.ambient"), 0.75f, 0.75f, 0.75f);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.diffuse"), 0.75f, 0.75f, 0.75f);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.specular"), 0.15f, 0.15f, 0.15f);
+		glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 1.0f);
 
 		// Create camera transformations
 		glm::mat4 view;
@@ -227,7 +224,8 @@ int main()
 		float u2 = 0;
 		float u3 = 0;
 		float u4 = 0;
-		float r = 0;
+		float u_xx = 0;
+		float r;
 		float avg_u = 0;
 		// Update height field
 		for (int i = 0; i < i_count; i++) {
@@ -236,8 +234,11 @@ int main()
 				u2 = i < i_count - 1 ? u[i + 1][j] : u[i_count-1][j];
 				u3 = j > 0 ? u[i][j - 1] : u[i][0];
 				u4 = j < j_count - 1 ? u[i][j + 1] : u[i][j_count-1];
-				r = glm::distance(magnetPos, glm::vec3(i - i_count / 2, u[i][j], j - j_count / 2));
-				f = pow(c, 2) * (u1 + u2 + u3 + u4 - 4 * u[i][j]) + magnetStrength / pow(r, 2);
+				u_xx = u1 + u2 + u3 + u4 - 4 * u[i][j];
+				u_xx = u_xx < 1 ? u_xx : 1; // Prevent wave force from exploding
+				r = glm::length(magnetPos - glm::vec3(i - i_count / 2, u[i][j], j - j_count / 2));
+				r = r > 1 ? r : 1.0f; // Prevent magnetic force from exploding
+				f = pow(c, 2) * u_xx + magnetStrength / pow(r, 2);
 				v[i][j] += f * deltaTime;
 				v[i][j] *= powf(decay_per_sec, deltaTime);
 				u_new[i][j] = u[i][j] + v[i][j] * deltaTime;
@@ -245,7 +246,6 @@ int main()
 			}
 		}
 		avg_u /= i_count + j_count;
-
 
 		// Draw the fluid
 		glm::mat4 model;
