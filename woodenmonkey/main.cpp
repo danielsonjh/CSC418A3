@@ -26,13 +26,13 @@ void do_movement();
 const GLuint WIDTH = 800, HEIGHT = 600;
 
 // Camera
-Camera  camera(glm::vec3(0.0f, 10.0f, 10.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0, -45.0);
+Camera  camera(glm::vec3(0.0f, 50.0f, 50.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0, -45.0);
 GLfloat lastX = WIDTH / 2.0;
 GLfloat lastY = HEIGHT / 2.0;
 bool    keys[1024];
 
 // Light attributes
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPos(3.0f, 10.0f, 4.0f);
 
 // Deltatime
 GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
@@ -143,6 +143,22 @@ int main()
 	glEnableVertexAttribArray(0);
 	glBindVertexArray(0);
 
+	// Initialize fluid state
+	const float c = 6;
+	const float decay_per_sec = 0.7;
+	const int i_count = 50;
+	const int j_count = 50;
+	float u[i_count][j_count];
+	float u_new[i_count][j_count];
+	float v[i_count][j_count];
+	float f = 0;
+	for (int i = 0; i < i_count; i++) {
+		for (int j = 0; j < j_count; j++) {
+			u[i][j] = rand() % 1000  / 100;
+			//u[i][j] = 25 * (i + j) / (i_count + j_count) + 1;
+			v[i][j] = 0;
+		}
+	}
 
 	// Game loop
 	while (!glfwWindowShouldClose(window))
@@ -169,9 +185,9 @@ int main()
 		glUniform3f(viewPosLoc, camera.Position.x, camera.Position.y, camera.Position.z);
 		// Set lights properties
 		glm::vec3 lightColor;
-		lightColor.x = sin(glfwGetTime() * 2.0f);
-		lightColor.y = sin(glfwGetTime() * 0.7f);
-		lightColor.z = sin(glfwGetTime() * 1.3f);
+		lightColor.x = sin(glfwGetTime() * 0.6f) + 1;
+		lightColor.y = sin(glfwGetTime() * 0.2f) + 1;
+		lightColor.z = sin(glfwGetTime() * 0.4f) + 1;
 		glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f); // Decrease the influence
 		glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // Low influence
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "light.ambient"), ambientColor.x, ambientColor.y, ambientColor.z);
@@ -194,12 +210,38 @@ int main()
 		// Pass the matrices to the shader
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+		
+		float u1 = 0;
+		float u2 = 0;
+		float u3 = 0;
+		float u4 = 0;
+		// Update height field
+		for (int i = 0; i < i_count; i++) {
+			for (int j = 0; j < j_count; j++) {
+				u1 = i > 0 ? u[i - 1][j] : u[0][j];
+				u2 = i < i_count - 1 ? u[i + 1][j] : u[i_count-1][j];
+				u3 = j > 0 ? u[i][j - 1] : u[i][0];
+				u4 = j < j_count - 1 ? u[i][j + 1] : u[i][j_count-1];
+				f = pow(c, 2) * (u1 + u2 + u3 + u4 - 4 * u[i][j]);
+				v[i][j] += f * deltaTime;
+				v[i][j] *= powf(decay_per_sec, deltaTime);
+				u_new[i][j] = u[i][j] + v[i][j] * deltaTime;
+			}
+		}
 
 		// Draw the container (using container's vertex attributes)
-		glBindVertexArray(containerVAO);
 		glm::mat4 model;
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(containerVAO);
+		for (int i = 0; i < i_count; i++) {
+			for (int j = 0; j < j_count; j++) {
+				u[i][j] = u_new[i][j];
+				model = glm::mat4();
+				model = glm::translate(model, glm::vec3(i - i_count / 2, 0, j - j_count / 2));
+				model = glm::scale(model, glm::vec3(1, u[i][j], 1));
+				glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+			}
+		}
 		glBindVertexArray(0);
 
 		// Also draw the lamp object, again binding the appropriate shader
