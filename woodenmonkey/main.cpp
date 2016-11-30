@@ -34,6 +34,18 @@ bool    keys[1024];
 // Light attributes
 glm::vec3 lightPos(3.0f, 10.0f, 4.0f);
 
+// Fluid attributes
+const float c = 6;
+const float decay_per_sec = 0.7f;
+const int i_count = 50;
+const int j_count = 50;
+float init_avg_u = 0;
+
+// Magnet attributes
+float magnetStrength = 100.0f;
+float magnetSpeed = 25;
+glm::vec3 magnetPos(0.0f, 10.0f, 0.0f);
+
 // Deltatime
 GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
 GLfloat lastFrame = 0.0f;  	// Time of last frame
@@ -61,6 +73,9 @@ int main()
 
 	// Define the viewport dimensions
 	glViewport(0, 0, WIDTH, HEIGHT);
+
+	// Set the required callback functions
+	glfwSetKeyCallback(window, key_callback);
 
 	// OpenGL options
 	glEnable(GL_DEPTH_TEST);
@@ -144,21 +159,19 @@ int main()
 	glBindVertexArray(0);
 
 	// Initialize fluid state
-	const float c = 6;
-	const float decay_per_sec = 0.7;
-	const int i_count = 50;
-	const int j_count = 50;
 	float u[i_count][j_count];
 	float u_new[i_count][j_count];
 	float v[i_count][j_count];
 	float f = 0;
 	for (int i = 0; i < i_count; i++) {
 		for (int j = 0; j < j_count; j++) {
-			u[i][j] = rand() % 1000  / 100;
+			u[i][j] = rand() % 1000  / (float)200;
 			//u[i][j] = 25 * (i + j) / (i_count + j_count) + 1;
 			v[i][j] = 0;
+			init_avg_u += u[i][j];
 		}
 	}
+	init_avg_u /= i_count + j_count;
 
 	// Game loop
 	while (!glfwWindowShouldClose(window))
@@ -176,7 +189,6 @@ int main()
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
 		// Use cooresponding shader when setting uniforms/drawing objects
 		lightingShader.Use();
 		GLint lightPosLoc = glGetUniformLocation(lightingShader.Program, "light.position");
@@ -185,19 +197,19 @@ int main()
 		glUniform3f(viewPosLoc, camera.Position.x, camera.Position.y, camera.Position.z);
 		// Set lights properties
 		glm::vec3 lightColor;
-		lightColor.x = sin(glfwGetTime() * 0.6f) + 1;
-		lightColor.y = sin(glfwGetTime() * 0.2f) + 1;
-		lightColor.z = sin(glfwGetTime() * 0.4f) + 1;
-		glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f); // Decrease the influence
-		glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // Low influence
+		lightColor.x = 1;
+		lightColor.y = 1;
+		lightColor.z = 1;
+		glm::vec3 diffuseColor = lightColor * glm::vec3(0.9f); // Decrease the influence
+		glm::vec3 ambientColor = diffuseColor * glm::vec3(0.4f); // Low influence
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "light.ambient"), ambientColor.x, ambientColor.y, ambientColor.z);
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "light.diffuse"), diffuseColor.x, diffuseColor.y, diffuseColor.z);
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "light.specular"), 1.0f, 1.0f, 1.0f);
 		// Set material properties
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.ambient"), 1.0f, 0.5f, 0.31f);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.diffuse"), 1.0f, 0.5f, 0.31f);
-		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.specular"), 0.5f, 0.5f, 0.5f); // Specular doesn't have full effect on this object's material
-		glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 32.0f);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.ambient"), 1.0f, 1.0f, 1.0f);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.diffuse"), 1.0f, 1.0f, 1.0f);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.specular"), 0.75f, 0.75f, 0.75f);
+		glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 12.0f);
 
 		// Create camera transformations
 		glm::mat4 view;
@@ -215,6 +227,8 @@ int main()
 		float u2 = 0;
 		float u3 = 0;
 		float u4 = 0;
+		float r = 0;
+		float avg_u = 0;
 		// Update height field
 		for (int i = 0; i < i_count; i++) {
 			for (int j = 0; j < j_count; j++) {
@@ -222,19 +236,23 @@ int main()
 				u2 = i < i_count - 1 ? u[i + 1][j] : u[i_count-1][j];
 				u3 = j > 0 ? u[i][j - 1] : u[i][0];
 				u4 = j < j_count - 1 ? u[i][j + 1] : u[i][j_count-1];
-				f = pow(c, 2) * (u1 + u2 + u3 + u4 - 4 * u[i][j]);
+				r = glm::distance(magnetPos, glm::vec3(i - i_count / 2, u[i][j], j - j_count / 2));
+				f = pow(c, 2) * (u1 + u2 + u3 + u4 - 4 * u[i][j]) + magnetStrength / pow(r, 2);
 				v[i][j] += f * deltaTime;
 				v[i][j] *= powf(decay_per_sec, deltaTime);
 				u_new[i][j] = u[i][j] + v[i][j] * deltaTime;
+				avg_u += u_new[i][j];
 			}
 		}
+		avg_u /= i_count + j_count;
 
-		// Draw the container (using container's vertex attributes)
+
+		// Draw the fluid
 		glm::mat4 model;
 		glBindVertexArray(containerVAO);
 		for (int i = 0; i < i_count; i++) {
 			for (int j = 0; j < j_count; j++) {
-				u[i][j] = u_new[i][j];
+				u[i][j] = u_new[i][j] + (init_avg_u - avg_u) / (i_count + j_count);
 				model = glm::mat4();
 				model = glm::translate(model, glm::vec3(i - i_count / 2, 0, j - j_count / 2));
 				model = glm::scale(model, glm::vec3(1, u[i][j], 1));
@@ -242,6 +260,17 @@ int main()
 				glDrawArrays(GL_TRIANGLES, 0, 36);
 			}
 		}
+		// Draw the magnet
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.ambient"), 0.3f, 0.3f, 0.3f);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.diffuse"), 0.3f, 0.3f, 0.3f);
+		glUniform3f(glGetUniformLocation(lightingShader.Program, "material.specular"), 0.5f, 0.5f, 0.5f);
+		glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 32.0f);
+		model = glm::mat4();
+		model = glm::translate(model, magnetPos);
+		model = glm::scale(model, glm::vec3(2, 2, 2));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
 		glBindVertexArray(0);
 
 		// Also draw the lamp object, again binding the appropriate shader
@@ -287,13 +316,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 void do_movement()
 {
-	// Camera controls
+	// Magnet controls
 	if (keys[GLFW_KEY_W])
-		camera.ProcessKeyboard(FORWARD, deltaTime);
+		magnetPos += glm::vec3(0, 0, -1) * magnetSpeed * deltaTime;
 	if (keys[GLFW_KEY_S])
-		camera.ProcessKeyboard(BACKWARD, deltaTime);
+		magnetPos += glm::vec3(0, 0, 1) * magnetSpeed * deltaTime;
 	if (keys[GLFW_KEY_A])
-		camera.ProcessKeyboard(LEFT, deltaTime);
+		magnetPos += glm::vec3(-1, 0, 0) * magnetSpeed * deltaTime;
 	if (keys[GLFW_KEY_D])
-		camera.ProcessKeyboard(RIGHT, deltaTime);
+		magnetPos += glm::vec3(1, 0, 0) * magnetSpeed * deltaTime;
 }
