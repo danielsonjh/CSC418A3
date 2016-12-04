@@ -6,7 +6,7 @@
 class Magnet {
 
 public:
-	float strength = 400.0f;
+	float strength = 350.0f;
 	float speed = 25;
 	glm::vec3 position;
 

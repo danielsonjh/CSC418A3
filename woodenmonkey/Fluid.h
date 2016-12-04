@@ -5,7 +5,7 @@
 #include "Magnet.h"
 
 const float fluid_c = 15;
-const float decay_per_sec = 0.6f;
+const float decay_per_sec = 0.4f;
 const int fluid_i_count = 50;
 const int fluid_j_count = 50;
 const float init_avg_u = 30;

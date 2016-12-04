@@ -49,7 +49,7 @@ Light light = Light(lightPos, camera);
 Fluid fluid = Fluid();
 
 // Magnet
-Magnet magnet = Magnet(glm::vec3(0.0f, 7.0f, 0.0f));
+Magnet magnet = Magnet(glm::vec3(0.0f, 5.0f, 25.0f));
 
 // Turtle
 Turtle turtle = Turtle(glm::vec3(2.0f, 0.0, 2.0f), &fluid, &light);
@@ -106,7 +106,7 @@ int main()
 		turtle.update_movement(keys, deltaTime);
 		turtle.draw();
 
-		light.draw(view, projection);
+		//light.draw(view, projection);
 
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
@@ -158,7 +158,7 @@ void drawFluid(GLint modelLoc) {
 		for (int j = 0; j < fluid_j_count; j++) {
 			model = glm::mat4();
 			model = glm::translate(model, glm::vec3(i - fluid_i_count / 2, 0, j - fluid_j_count / 2));
-			model = glm::scale(model, glm::vec3(1, fluid. u[i][j], 1));
+			model = glm::scale(model, glm::vec3(1, glm::max(fluid.u[i][j], 0.01f), 1)); // Prevent 0 height water
 			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
