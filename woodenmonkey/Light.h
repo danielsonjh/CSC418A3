@@ -53,8 +53,8 @@ private:
 		glUniform3f(viewPosLoc, camera.Position.x, camera.Position.y, camera.Position.z);
 		// Set lights properties
 		glm::vec3 lightColor;
-		lightColor.x = 0;
-		lightColor.y = 0.75;
+		lightColor.x = 1;
+		lightColor.y = 1;
 		lightColor.z = 1;
 		glm::vec3 diffuseColor = lightColor * glm::vec3(0.9f); // Decrease the influence
 		glm::vec3 ambientColor = diffuseColor * glm::vec3(0.4f); // Low influence

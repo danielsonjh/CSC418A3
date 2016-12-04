@@ -12,6 +12,12 @@ public:
 		setupCube();
 	}
 
+	void drawCube() {
+		glBindVertexArray(cubeVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+	}
+
 private:
 
 	GLfloat cubeVertices[6*6*6] = {

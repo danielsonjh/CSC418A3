@@ -4,8 +4,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 class Magnet {
-public:
 
+public:
 	float strength = 400.0f;
 	float speed = 25;
 	glm::vec3 position;

@@ -5,15 +5,15 @@
 #include "Magnet.h"
 
 const float fluid_c = 15;
-const float decay_per_sec = 0.5f;
+const float decay_per_sec = 0.6f;
 const int fluid_i_count = 50;
 const int fluid_j_count = 50;
 const float init_avg_u = 30;
 
 class Fluid {
+
 public:
 	float u[fluid_i_count][fluid_j_count];
-
 
 	Fluid() {
 		// Initialize fluid state
@@ -40,13 +40,14 @@ public:
 				u3 = j > 0 ? u[i][j - 1] : u[i][0];
 				u4 = j < fluid_j_count - 1 ? u[i][j + 1] : u[i][fluid_j_count - 1];
 				u_xx = u1 + u2 + u3 + u4 - 4 * u[i][j];
-				u_xx = u_xx < 1 ? u_xx : 1; // Prevent wave force from exploding
+				u_xx = glm::min(u_xx, 1.0f); // Prevent wave force from exploding
 				r = glm::length(magnet.position - glm::vec3(i - fluid_i_count / 2, u[i][j], j - fluid_j_count / 2));
-				r = r > 1 ? r : 1.0f; // Prevent magnetic force from exploding
+				r = glm::max(r, 1.0f); // Prevent magnetic force from exploding
 				f = pow(fluid_c, 2) * u_xx + magnet.strength / pow(r, 2);
 				v[i][j] += f * deltaTime;
 				v[i][j] *= powf(decay_per_sec, deltaTime);
 				u_new[i][j] = u[i][j] + v[i][j] * deltaTime;
+				u_new[i][j] = glm::max(u_new[i][j], 0.0f);
 				avg_u += u_new[i][j];
 			}
 		}
@@ -58,6 +59,7 @@ public:
 			}
 		}
 	}
+
 private:
 	float u_new[fluid_i_count][fluid_j_count];
 	float v[fluid_i_count][fluid_j_count];

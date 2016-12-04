@@ -20,6 +20,7 @@
 #include "Light.h"
 #include "Fluid.h"
 #include "Magnet.h"
+#include "Turtle.h"
 
 
 // Function prototypes
@@ -47,8 +48,11 @@ Light light = Light(lightPos, camera);
 // Fluid
 Fluid fluid = Fluid();
 
-// Magnet attributes
+// Magnet
 Magnet magnet = Magnet(glm::vec3(0.0f, 7.0f, 0.0f));
+
+// Turtle
+Turtle turtle = Turtle(glm::vec3(2.0f, 0.0, 2.0f), &fluid, &light);
 
 // Deltatime
 GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
@@ -98,6 +102,9 @@ int main()
 		drawFluid(modelLoc);
 
 		drawMagnet(modelLoc);
+		
+		turtle.update_movement(keys, deltaTime);
+		turtle.draw();
 
 		light.draw(view, projection);
 
@@ -142,9 +149,9 @@ void drawFluid(GLint modelLoc) {
 	light.lightingShader.Use();
 	glBindVertexArray(shapes.cubeVAO);
 
-	glUniform3f(glGetUniformLocation(light.lightingShader.Program, "material.ambient"), 0.75f, 0.75f, 0.75f);
-	glUniform3f(glGetUniformLocation(light.lightingShader.Program, "material.diffuse"), 0.75f, 0.75f, 0.75f);
-	glUniform3f(glGetUniformLocation(light.lightingShader.Program, "material.specular"), 0.15f, 0.15f, 0.15f);
+	glUniform3f(glGetUniformLocation(light.lightingShader.Program, "material.ambient"), 0.0f, 0.5f, 0.75f);
+	glUniform3f(glGetUniformLocation(light.lightingShader.Program, "material.diffuse"), 0.0f, 0.5f, 0.75f);
+	glUniform3f(glGetUniformLocation(light.lightingShader.Program, "material.specular"), 0.0f, 0.1f, 0.15f);
 	glUniform1f(glGetUniformLocation(light.lightingShader.Program, "material.shininess"), 1.0f);
 	glm::mat4 model;
 	for (int i = 0; i < fluid_i_count; i++) {
@@ -164,8 +171,8 @@ void drawMagnet(GLint modelLoc) {
 	light.lightingShader.Use();
 	glBindVertexArray(shapes.cubeVAO);
 
-	glUniform3f(glGetUniformLocation(light.lightingShader.Program, "material.ambient"), 0.3f, 0.3f, 0.3f);
-	glUniform3f(glGetUniformLocation(light.lightingShader.Program, "material.diffuse"), 0.3f, 0.3f, 0.3f);
+	glUniform3f(glGetUniformLocation(light.lightingShader.Program, "material.ambient"), 0.0f, 0.25f, 0.3f);
+	glUniform3f(glGetUniformLocation(light.lightingShader.Program, "material.diffuse"), 0.25f, 0.25f, 0.25f);
 	glUniform3f(glGetUniformLocation(light.lightingShader.Program, "material.specular"), 0.5f, 0.5f, 0.5f);
 	glUniform1f(glGetUniformLocation(light.lightingShader.Program, "material.shininess"), 32.0f);
 	glm::mat4 model = glm::mat4();
