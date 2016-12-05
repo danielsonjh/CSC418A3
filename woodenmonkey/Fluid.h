@@ -15,7 +15,9 @@ class Fluid {
 public:
 	float u[fluid_i_count][fluid_j_count];
 
-	Fluid() {
+	Fluid(Light* _light) {
+		light = _light;
+
 		// Initialize fluid state
 		for (int i = 0; i < fluid_i_count; i++) {
 			for (int j = 0; j < fluid_j_count; j++) {
@@ -33,6 +35,7 @@ public:
 		float u_xx = 0;
 		float r;
 		avg_u = 0;
+		// Get new height values before applying them, since updates depend on nearby heights.
 		for (int i = 0; i < fluid_i_count; i++) {
 			for (int j = 0; j < fluid_j_count; j++) {
 				u1 = i > 0 ? u[i - 1][j] : u[0][j];
@@ -45,7 +48,7 @@ public:
 				r = glm::max(r, 1.0f); // Prevent magnetic force from exploding
 				f = pow(fluid_c, 2) * u_xx + magnet.strength / pow(r, 2);
 				v[i][j] += f * deltaTime;
-				v[i][j] *= powf(decay_per_sec, deltaTime);
+				v[i][j] *= powf(decay_per_sec, deltaTime); // Decay the velocity over time
 				u_new[i][j] = u[i][j] + v[i][j] * deltaTime;
 				u_new[i][j] = glm::max(u_new[i][j], 0.0f);
 				avg_u += u_new[i][j];
@@ -55,9 +58,34 @@ public:
 
 		for (int i = 0; i < fluid_i_count; i++) {
 			for (int j = 0; j < fluid_j_count; j++) {
+				// Update heights, making sure to keep the same amount of fluid volume.
 				u[i][j] = u_new[i][j] + (init_avg_u - avg_u) / (fluid_i_count + fluid_j_count);
 			}
 		}
+	}
+
+	void draw() {
+		light->lightingShader.Use();
+		GLint modelLoc = glGetUniformLocation(light->lightingShader.Program, "model");
+
+		glBindVertexArray(shapes.cubeVAO);
+
+		glUniform3f(glGetUniformLocation(light->lightingShader.Program, "material.ambient"), 0.0f, 0.5f, 0.75f);
+		glUniform3f(glGetUniformLocation(light->lightingShader.Program, "material.diffuse"), 0.0f, 0.5f, 0.75f);
+		glUniform3f(glGetUniformLocation(light->lightingShader.Program, "material.specular"), 0.0f, 0.1f, 0.15f);
+		glUniform1f(glGetUniformLocation(light->lightingShader.Program, "material.shininess"), 1.0f);
+		glm::mat4 model;
+		for (int i = 0; i < fluid_i_count; i++) {
+			for (int j = 0; j < fluid_j_count; j++) {
+				model = glm::mat4();
+				model = glm::translate(model, glm::vec3(i - fluid_i_count / 2, 0, j - fluid_j_count / 2));
+				model = glm::scale(model, glm::vec3(1, glm::max(u[i][j], 0.01f), 1)); // Prevent 0 height water
+				glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+				glDrawArrays(GL_TRIANGLES, 0, 36);
+			}
+		}
+
+		glBindVertexArray(0);
 	}
 
 private:
@@ -65,4 +93,6 @@ private:
 	float v[fluid_i_count][fluid_j_count];
 	float f = 0;
 	float avg_u = 0;
+
+	Light* light;
 };

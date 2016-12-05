@@ -45,14 +45,14 @@ public:
 	}
 
 	void draw() {
+		light->lightingShader.Use();
+		GLint modelLoc = glGetUniformLocation(light->lightingShader.Program, "model");
+
 		// Set the color
 		glUniform3f(glGetUniformLocation(light->lightingShader.Program, "material.ambient"), 0.4f, 0.3f, 0.3f);
 		glUniform3f(glGetUniformLocation(light->lightingShader.Program, "material.diffuse"), 0.4f, 0.3f, 0.3f);
 		glUniform3f(glGetUniformLocation(light->lightingShader.Program, "material.specular"), 0.5f, 0.5f, 0.5f);
 		glUniform1f(glGetUniformLocation(light->lightingShader.Program, "material.shininess"), 1.0f);
-
-		light->lightingShader.Use();
-		GLint modelLoc = glGetUniformLocation(light->lightingShader.Program, "model");
 
 		// ROOT
 		glm::mat4 model = glm::mat4();
