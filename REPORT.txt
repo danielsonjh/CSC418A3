@@ -1,0 +1,43 @@
+Jihyung Son - 1000064093
+
+BASIC RAY TRACER
+
+Implemented the required methods.
+To get the 3 different render types: signature/diffuse/phong, 2 flags were added to the original render methods.
+Signature just shows the sum of the material's colors.
+Diffuse omits the specular term.
+Phong shows all terms.
+
+
+WOODEN MONKEY
+
+Implemented height-field water simulation in OpenGL 3.2
+Resources used for example code and learning material:
+	https://learnopengl.com/
+	http://matthias-mueller-fischer.ch/talks/GDC2008.pdf
+A self-contained Windows compilation environment (Visual Studio 2015 solution) is in the folder 'woodenmonkey'
+The final compiled .exe and dependencies are provided in 'woodenmonkey/x64/Debug'. 'woodenmonkey.exe' will run the program.
+A video of the program in use is also in 'woodenmonkey'
+The solution contains all external libraries, and it must be compiled for x64.
+
+Controls:
+	WASD to control the position of the magnet which pulls the fluid
+	UpDownLeftRight to control the forward/backward speed and rotation of the turtle floating on the fluid
+	
+Files:
+	main.cpp
+		Contains window setup code, and initialization of objects such as camera, light, fluid, turtle, magnet, etc.
+	Camera.h
+		Contains camera code from learnopengl.com
+	Shader.h
+		Contains shader compilation code form learnopengl.com
+	Fluid.h
+		Contains parameters and logic to simulate and draw height field fluid
+	Light.h
+		Contains setup code for the shaders
+	Turtle.h
+		Contains code to draw and control the turtle.
+	Magnet.h
+		Contains code to draw and control the magnet.
+	Shapes.h
+		Contains setup code for drawing cubes.
